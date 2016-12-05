@@ -12,6 +12,7 @@ import (
 	"reflect"
 	"sync"
 	"sync/atomic"
+	"github.com/milk/nmp/shared"
 )
 
 type forwardClient struct {
@@ -24,7 +25,7 @@ type forwardClient struct {
 
 type ForwardInput struct {
 	entries        int64 // This variable must be on 64-bit alignment. Otherwise atomic.AddInt64 will cause a crash on ARM and x86-32
-	port           Port
+	port           shared.InputListener
 	logger         *logrus.Logger
 	bind           string
 	listener       *net.TCPListener
@@ -54,20 +55,20 @@ func coerceInPlace(data map[string]interface{}) {
 	}
 }
 
-func (c *forwardClient) decodeRecordSet(tag []byte, entries []interface{}) (FluentRecordSet, error) {
+func (c *forwardClient) decodeRecordSet(tag []byte, entries []interface{}) (shared.RecordSet, error) {
 
-	records := make([]TinyFluentRecord, len(entries))
+	records := make([]shared.TinyRecord, len(entries))
 	for i, _entry := range entries {
 		entry, ok := _entry.([]interface{})
 		if !ok {
-			return FluentRecordSet{}, errors.New("Failed to decode recordSet")
+			return shared.RecordSet{}, errors.New("Failed to decode recordSet")
 		}
 		var timestamp = uint64(0)
 		timestampFloat, ok := entry[0].(float64)
 		if !ok {
 			timestamp, ok = entry[0].(uint64)
 			if !ok {
-				return FluentRecordSet{}, errors.New("Failed to decode timestamp field")
+				return shared.RecordSet{}, errors.New("Failed to decode timestamp field")
 			}
 		} else {
 			timestamp = uint64(timestampFloat)
@@ -75,21 +76,21 @@ func (c *forwardClient) decodeRecordSet(tag []byte, entries []interface{}) (Flue
 
 		data, ok := entry[1].(map[string]interface{})
 		if !ok {
-			return FluentRecordSet{}, errors.New("Failed to decode data field")
+			return shared.RecordSet{}, errors.New("Failed to decode data field")
 		}
 		coerceInPlace(data)
-		records[i] = TinyFluentRecord{
+		records[i] = shared.TinyRecord{
 			Timestamp: timestamp,
 			Data:      data,
 		}
 	}
-	return FluentRecordSet{
+	return shared.RecordSet{
 		Tag:     string(tag), // XXX: byte => rune
 		Records: records,
 	}, nil
 }
 
-func (c *forwardClient) decodeEntries() ([]FluentRecordSet, error) {
+func (c *forwardClient) decodeEntries() ([]shared.RecordSet, error) {
 	v := []interface{}{nil, nil, nil}
 	err := c.dec.Decode(&v)
 	if err != nil {
@@ -100,7 +101,7 @@ func (c *forwardClient) decodeEntries() ([]FluentRecordSet, error) {
 		return nil, errors.New("Failed to decode tag field")
 	}
 
-	var retval []FluentRecordSet
+	var retval []shared.RecordSet
 	switch timestamp_or_entries := v[1].(type) {
 	case uint64:
 		timestamp := timestamp_or_entries
@@ -109,10 +110,10 @@ func (c *forwardClient) decodeEntries() ([]FluentRecordSet, error) {
 			return nil, errors.New("Failed to decode data field")
 		}
 		coerceInPlace(data)
-		retval = []FluentRecordSet{
+		retval = []shared.RecordSet{
 			{
 				Tag: string(tag), // XXX: byte => rune
-				Records: []TinyFluentRecord{
+				Records: []shared.TinyRecord{
 					{
 						Timestamp: timestamp,
 						Data:      data,
@@ -126,10 +127,10 @@ func (c *forwardClient) decodeEntries() ([]FluentRecordSet, error) {
 		if !ok {
 			return nil, errors.New("Failed to decode data field")
 		}
-		retval = []FluentRecordSet{
+		retval = []shared.RecordSet{
 			{
 				Tag: string(tag), // XXX: byte => rune
-				Records: []TinyFluentRecord{
+				Records: []shared.TinyRecord{
 					{
 						Timestamp: timestamp,
 						Data:      data,
@@ -145,7 +146,7 @@ func (c *forwardClient) decodeEntries() ([]FluentRecordSet, error) {
 		if err != nil {
 			return nil, err
 		}
-		retval = []FluentRecordSet{recordSet}
+		retval = []shared.RecordSet{recordSet}
 	case []byte:
 		entries := make([]interface{}, 0)
 		reader := bytes.NewReader(timestamp_or_entries)
@@ -164,7 +165,7 @@ func (c *forwardClient) decodeEntries() ([]FluentRecordSet, error) {
 		if err != nil {
 			return nil, err
 		}
-		retval = []FluentRecordSet{recordSet}
+		retval = []shared.RecordSet{recordSet}
 	default:
 		return nil, errors.New(fmt.Sprintf("Unknown type: %t", timestamp_or_entries))
 	}
@@ -320,7 +321,7 @@ func (input *ForwardInput) Stop() {
 	}
 }
 
-func NewForwardInput(logger *logrus.Logger, bind string, port Port) (*ForwardInput, error) {
+func NewForwardInput(logger *logrus.Logger, bind string, port shared.InputListener) (*ForwardInput, error) {
 	_codec := codec.MsgpackHandle{}
 	_codec.MapType = reflect.TypeOf(map[string]interface{}(nil))
 	_codec.RawToString = false

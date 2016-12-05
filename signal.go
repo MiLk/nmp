@@ -1,13 +1,12 @@
-package main
+package nmp
 
 import (
-	"github.com/milk/nmp"
 	"os"
 	"os/signal"
 )
 
 type SignalHandler struct {
-	Workers    *nmp.WorkerSet
+	Workers    *WorkerSet
 	signalChan chan os.Signal
 }
 
@@ -21,7 +20,7 @@ func (handler *SignalHandler) Start() {
 	}()
 }
 
-func NewSignalHandler(workerSet *nmp.WorkerSet) *SignalHandler {
+func NewSignalHandler(workerSet *WorkerSet) *SignalHandler {
 	return &SignalHandler{
 		workerSet,
 		make(chan os.Signal, 1),

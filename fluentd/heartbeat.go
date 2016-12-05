@@ -8,7 +8,6 @@ import (
 )
 
 type HeartbeatInput struct {
-	port           Port
 	logger         *logrus.Logger
 	listener       *net.UDPConn
 	wg             sync.WaitGroup
@@ -56,7 +55,7 @@ func (input *HeartbeatInput) String() string {
 	return "heartbeat"
 }
 
-func NewForwardHeartbeatInput(logger *logrus.Logger, bind string, port Port) (*HeartbeatInput, error) {
+func NewForwardHeartbeatInput(logger *logrus.Logger, bind string) (*HeartbeatInput, error) {
 	addr, err := net.ResolveUDPAddr("udp", bind)
 	if err != nil {
 		logger.Error(err.Error())
@@ -69,7 +68,6 @@ func NewForwardHeartbeatInput(logger *logrus.Logger, bind string, port Port) (*H
 	}
 
 	return &HeartbeatInput{
-		port:           port,
 		logger:         logger,
 		listener:       listener,
 		wg:             sync.WaitGroup{},
