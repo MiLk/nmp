@@ -1,30 +1,45 @@
 package nagios
 
 import (
-	"bytes"
 	"fmt"
+	"io/ioutil"
 	"sync"
 	"sync/atomic"
-	"text/template"
 
 	"github.com/Sirupsen/logrus"
-
-	"github.com/milk/nmp/shared"
-	"time"
+	"os"
 )
 
 type Writer struct {
-	logger         *logrus.Logger
-	wg             sync.WaitGroup
-	writerChan     chan []shared.CheckResult
-	isShuttingDown uintptr
-	template       *template.Template
+	logger          *logrus.Logger
+	wg              sync.WaitGroup
+	writerChan      chan string
+	isShuttingDown  uintptr
+	checkResultsDir string
 }
 
-type TemplateData struct {
-	CheckResult shared.CheckResult
-	FinishTime  int64
-	Date        string
+func (writer *Writer) writeToFile(checkResult string) error {
+	tmpfile, err := ioutil.TempFile(writer.checkResultsDir, "c")
+	if err != nil {
+		return err
+	}
+	if _, err := tmpfile.Write([]byte(checkResult)); err != nil {
+		return err
+	}
+	if err := tmpfile.Close(); err != nil {
+		return err
+	}
+	if err := os.Chmod(tmpfile.Name(), 0770); err != nil {
+		return err
+	}
+
+	filename := fmt.Sprintf("%s.ok", tmpfile.Name())
+	err = ioutil.WriteFile(filename, []byte{}, 0770)
+	if err != nil {
+		return nil
+	}
+
+	return nil
 }
 
 func (writer *Writer) spawnWriter() {
@@ -36,32 +51,21 @@ func (writer *Writer) spawnWriter() {
 		}()
 		writer.logger.Info("Writer started")
 
-		buf := new(bytes.Buffer)
-		for checks := range writer.writerChan {
-			for _, check := range checks {
-				now := time.Now()
-				err := writer.template.Execute(buf, TemplateData{
-					CheckResult: check,
-					FinishTime:  now.Unix(),
-					Date:        now.Format("Mon Jan 02 15:04:05 -0700 2006"),
-				})
-				if err != nil {
-					writer.logger.Error(err)
-					continue
-				}
-				value := buf.String()
-				fmt.Printf("Check: %+v\n", value)
+		for checkResult := range writer.writerChan {
+			err := writer.writeToFile(checkResult)
+			if err != nil {
+				writer.logger.Error(err)
 			}
 		}
 		writer.logger.Info("Writer ended")
 	}()
 }
 
-func (writer *Writer) Emit(resultChecks []shared.CheckResult) error {
+func (writer *Writer) Emit(resultCheck string) error {
 	defer func() {
 		recover()
 	}()
-	writer.writerChan <- resultChecks
+	writer.writerChan <- resultCheck
 	return nil
 }
 
@@ -83,34 +87,14 @@ func (writer *Writer) Start() {
 	writer.spawnWriter()
 }
 
-func NewWriter(logger *logrus.Logger) (*Writer, error) {
-
-	checkTemplate := `### NMP Check ###
-latency=0
-start_time={{ .FinishTime }}.0
-finish_time={{ .FinishTime }}.0
-# Time: {{ .Date -}}
-{{ with .CheckResult }}
-host_name={{ .Hostname }}
-{{ if (eq .Type "service") }}service_description={{ .ServiceName }}{{ end }}
-check_type=1
-early_timeout=1
-exited_ok=1
-return_code={{ .Code }}
-output={{ .Output }}
-{{ end }}
-`
-	t, err := template.New("nagios writter").Parse(checkTemplate)
-	if err != nil {
-		return nil, err
-	}
+func NewWriter(logger *logrus.Logger, checkResultsDir string) (*Writer, error) {
 
 	writer := &Writer{
-		logger:         logger,
-		wg:             sync.WaitGroup{},
-		writerChan:     make(chan []shared.CheckResult),
-		isShuttingDown: 0,
-		template:       t,
+		logger:          logger,
+		wg:              sync.WaitGroup{},
+		writerChan:      make(chan string),
+		isShuttingDown:  0,
+		checkResultsDir: checkResultsDir,
 	}
 	return writer, nil
 }

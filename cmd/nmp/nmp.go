@@ -21,14 +21,21 @@ func main() {
 
 	workerSet := nmp.NewWorkerSet()
 
-	writer, err := nagios.NewWriter(log)
+	writer, err := nagios.NewWriter(log, _config.CheckResultsDir)
 	if err != nil {
 		log.Fatal(err.Error())
 		return
 	}
 	workerSet.Add(writer)
 
-	checker, err := collectd.NewChecker(log, _config.Checks, writer)
+	transformer, err := nagios.NewTransformer(log, writer)
+	if err != nil {
+		log.Fatal(err.Error())
+		return
+	}
+	workerSet.Add(transformer)
+
+	checker, err := collectd.NewChecker(log, _config.Checks, transformer)
 	if err != nil {
 		log.Fatal(err.Error())
 		return
@@ -59,6 +66,7 @@ func main() {
 	signalHandler := nmp.NewSignalHandler(workerSet)
 
 	writer.Start()
+	transformer.Start()
 	checker.Start()
 	collectdTransformer.Start()
 	fluentdForwarderInput.Start()

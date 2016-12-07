@@ -22,6 +22,10 @@ type CheckResult struct {
 	Output      string
 }
 
-type Writer interface {
+type Transformer interface {
 	Emit(checkResults []CheckResult) error
+}
+
+type Writer interface {
+	Emit(check string) error
 }

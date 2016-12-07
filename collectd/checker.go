@@ -17,7 +17,7 @@ type Checker struct {
 	emitterChan    chan CollectdRecord
 	isShuttingDown uintptr
 	checks         map[string][]shared.CheckerRule
-	writer         shared.Writer
+	transformer    shared.Transformer
 }
 
 func (checker *Checker) checkRecord(record CollectdRecord) ([]shared.CheckResult, error) {
@@ -104,7 +104,7 @@ func (checker *Checker) spawnChecker() {
 				continue
 			}
 			if len(checkResults) > 0 {
-				checker.writer.Emit(checkResults)
+				checker.transformer.Emit(checkResults)
 			}
 		}
 		checker.logger.Info("Checker ended")
@@ -137,7 +137,7 @@ func (checker *Checker) Start() {
 	checker.spawnChecker()
 }
 
-func NewChecker(logger *logrus.Logger, checks map[string]config.Check, writer shared.Writer) (*Checker, error) {
+func NewChecker(logger *logrus.Logger, checks map[string]config.Check, transformer shared.Transformer) (*Checker, error) {
 	_checks := map[string][]shared.CheckerRule{}
 
 	for k, v := range checks {
@@ -153,7 +153,7 @@ func NewChecker(logger *logrus.Logger, checks map[string]config.Check, writer sh
 		emitterChan:    make(chan CollectdRecord),
 		isShuttingDown: 0,
 		checks:         _checks,
-		writer:         writer,
+		transformer:    transformer,
 	}
 	return checker, nil
 }

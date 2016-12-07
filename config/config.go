@@ -33,7 +33,8 @@ type Check struct {
 }
 
 type Config struct {
-	Checks map[string]Check `hcl:"check"`
+	CheckResultsDir string           `hcl:"check_results_dir"`
+	Checks          map[string]Check `hcl:"check"`
 }
 
 func Read() (*Config, error) {
