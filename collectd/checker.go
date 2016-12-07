@@ -8,7 +8,7 @@ import (
     "github.com/milk/nmp/config"
     "github.com/hashicorp/hil"
     "strconv"
-    "reflect"
+    "bytes"
 )
 
 type CheckerRule struct {
@@ -22,22 +22,8 @@ type CheckResult struct {
     Rule *CheckerRule
 }
 
-func (result *CheckResult) IsEmpty() {
+func (result *CheckResult) IsEmpty() bool {
     return result.Code == 0 && result.Record == nil && result.Rule == nil
-}
-
-func (rule *CheckerRule) CompareUint64(value uint64, threshold uint64) (bool, error) {
-    switch rule.Check.Comparator {
-    case config.GreaterThan:
-        return value > threshold, nil
-    case config.GreaterThanOrEqualTo:
-        return value >= threshold, nil
-    case config.LesserThanOrEqualTo:
-        return value <= threshold, nil
-    case config.LesserThan:
-        return value < threshold, nil
-    }
-    return false, fmt.Errorf("Invalid comparator for rule %+v", rule)
 }
 
 func (rule *CheckerRule) CompareFloat64(value float64, threshold float64) (bool, error) {
@@ -54,29 +40,20 @@ func (rule *CheckerRule) CompareFloat64(value float64, threshold float64) (bool,
     return false, fmt.Errorf("Invalid comparator for rule %+v", rule)
 }
 
-func (rule *CheckerRule) Compare(value interface{}, threshold hil.EvaluationResult) (bool, error) {
-    valueType := reflect.TypeOf(value)
-
+func (rule *CheckerRule) Compare(value string, threshold hil.EvaluationResult) (bool, error) {
     if threshold.Type != hil.TypeString {
         return false, fmt.Errorf("Invalid configuration for rule %+v", rule)
     }
 
-    switch valueType.Kind() {
-    case reflect.Uint64:
-        thresholdConverted, err := strconv.ParseUint(threshold.Value.(string), 10, 64)
-        if err != nil {
-            return false, err
-        }
-        return rule.CompareUint64(value.(uint64), thresholdConverted)
-    case reflect.Float64:
-        thresholdConverted, err := strconv.ParseFloat(threshold.Value.(string), 64)
-        if err != nil {
-            return false, err
-        }
-        return rule.CompareFloat64(value.(float64), thresholdConverted)
-    default:
-        return false, fmt.Errorf("Invalid value type %T", value)
+    thresholdF, err := strconv.ParseFloat(threshold.Value.(string), 64)
+    if err != nil {
+        return false, err
     }
+    valueF, err := strconv.ParseFloat(value, 64)
+    if err != nil {
+        return false, err
+    }
+    return rule.CompareFloat64(valueF, thresholdF)
 }
 
 type Checker struct {
@@ -85,15 +62,6 @@ type Checker struct {
     emitterChan          chan CollectdRecord
     isShuttingDown       uintptr
     checks  map[string][]CheckerRule
-}
-
-func ParseHIL(input string, hilConfig *hil.EvalConfig) (hil.EvaluationResult, error) {
-    tree, err := hil.Parse(input)
-    if err != nil {
-        return hil.InvalidResult, err
-    }
-
-    return hil.Eval(tree, hilConfig)
 }
 
 func (checker *Checker) checkRecord(record CollectdRecord) ([]CheckResult, error) {
@@ -109,40 +77,38 @@ func (checker *Checker) checkRecord(record CollectdRecord) ([]CheckResult, error
             if rule.Check.TypeInstance != "" && rule.Check.TypeInstance != record.TypeInstance {
                 continue
             }
-            hilConfig := &hil.EvalConfig{}
 
-            // CRITICAL check
-            critical, err := ParseHIL(rule.Check.Critical, hilConfig)
+            buf := new(bytes.Buffer)
+            err := rule.Check.Value.Execute(buf, record)
             if err != nil {
                 checker.logger.Error(err)
                 continue
             }
-            result, err := rule.Compare(record.Values[0], critical)
+
+            // CRITICAL CHECK
+            result, err := rule.Compare(buf.String(), rule.Check.Critical)
             if err != nil {
                 checker.logger.Error(err)
                 continue
             }
             if result {
-                results = append(results, CheckResult{Code:2, Rule: rule, Record: record})
+                results = append(results, CheckResult{Code:2, Rule: &rule, Record: &record})
                 continue
             }
 
             // WARNING CHECK
-            warning, err := ParseHIL(rule.Check.Warning, hilConfig)
-            if err != nil {
-                checker.logger.Error(err)
-                continue
-            }
-            result, err = rule.Compare(record.Values[0], warning)
+            result, err = rule.Compare(buf.String(), rule.Check.Warning)
             if err != nil {
                 checker.logger.Error(err)
                 continue
             }
             if result {
-                results = append(results, CheckResult{Code:1, Rule: rule, Record: record})
+                results = append(results, CheckResult{Code:1, Rule: &rule, Record: &record})
                 continue
             }
-            results = append(results, CheckResult{Code:0, Rule: rule, Record: record})
+
+            // SUCCESS
+            results = append(results, CheckResult{Code:0, Rule: &rule, Record: &record})
         }
     }
     return results, nil
@@ -162,7 +128,9 @@ func (checker *Checker) spawnChecker() {
                 checker.logger.Error(err)
                 continue
             }
-            fmt.Printf("Check results: %+v\n", checkResults)
+            if len(checkResults) > 0 {
+                fmt.Printf("Check results: %+v\n", checkResults)
+            }
         }
         checker.logger.Info("Checker ended")
     }()
