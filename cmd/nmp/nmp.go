@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/Sirupsen/logrus"
+
 	"github.com/milk/nmp"
 	"github.com/milk/nmp/collectd"
 	"github.com/milk/nmp/config"
@@ -20,7 +21,14 @@ func main() {
 
 	workerSet := nmp.NewWorkerSet()
 
-	checker, err := collectd.NewChecker(log, _config.Checks)
+	writer, err := nagios.NewWriter(log)
+	if err != nil {
+		log.Fatal(err.Error())
+		return
+	}
+	workerSet.Add(writer)
+
+	checker, err := collectd.NewChecker(log, _config.Checks, writer)
 	if err != nil {
 		log.Fatal(err.Error())
 		return
@@ -50,6 +58,7 @@ func main() {
 
 	signalHandler := nmp.NewSignalHandler(workerSet)
 
+	writer.Start()
 	checker.Start()
 	collectdTransformer.Start()
 	fluentdForwarderInput.Start()

@@ -2,70 +2,26 @@ package collectd
 
 import (
 	"bytes"
-	"fmt"
-	"github.com/Sirupsen/logrus"
-	"github.com/hashicorp/hil"
-	"github.com/milk/nmp/config"
-	"strconv"
 	"sync"
 	"sync/atomic"
+
+	"github.com/Sirupsen/logrus"
+
+	"github.com/milk/nmp/config"
+	"github.com/milk/nmp/shared"
 )
-
-type CheckerRule struct {
-	Check config.Check
-	Name  string
-}
-
-type CheckResult struct {
-	Code   uint8
-	Record *CollectdRecord
-	Rule   *CheckerRule
-}
-
-func (result *CheckResult) IsEmpty() bool {
-	return result.Code == 0 && result.Record == nil && result.Rule == nil
-}
-
-func (rule *CheckerRule) CompareFloat64(value float64, threshold float64) (bool, error) {
-	switch rule.Check.Comparator {
-	case config.GreaterThan:
-		return value > threshold, nil
-	case config.GreaterThanOrEqualTo:
-		return value >= threshold, nil
-	case config.LesserThanOrEqualTo:
-		return value <= threshold, nil
-	case config.LesserThan:
-		return value < threshold, nil
-	}
-	return false, fmt.Errorf("Invalid comparator for rule %+v", rule)
-}
-
-func (rule *CheckerRule) Compare(value string, threshold hil.EvaluationResult) (bool, error) {
-	if threshold.Type != hil.TypeString {
-		return false, fmt.Errorf("Invalid configuration for rule %+v", rule)
-	}
-
-	thresholdF, err := strconv.ParseFloat(threshold.Value.(string), 64)
-	if err != nil {
-		return false, err
-	}
-	valueF, err := strconv.ParseFloat(value, 64)
-	if err != nil {
-		return false, err
-	}
-	return rule.CompareFloat64(valueF, thresholdF)
-}
 
 type Checker struct {
 	logger         *logrus.Logger
 	wg             sync.WaitGroup
 	emitterChan    chan CollectdRecord
 	isShuttingDown uintptr
-	checks         map[string][]CheckerRule
+	checks         map[string][]shared.CheckerRule
+	writer         shared.Writer
 }
 
-func (checker *Checker) checkRecord(record CollectdRecord) ([]CheckResult, error) {
-	results := []CheckResult{}
+func (checker *Checker) checkRecord(record CollectdRecord) ([]shared.CheckResult, error) {
+	results := []shared.CheckResult{}
 	if rules, ok := checker.checks[record.Plugin]; ok {
 		for _, rule := range rules {
 			if rule.Check.PluginInstance != "" && rule.Check.PluginInstance != record.PluginInstance {
@@ -84,31 +40,50 @@ func (checker *Checker) checkRecord(record CollectdRecord) ([]CheckResult, error
 				checker.logger.Error(err)
 				continue
 			}
+			value := buf.String()
 
 			// CRITICAL CHECK
-			result, err := rule.Compare(buf.String(), rule.Check.Critical)
+			result, err := rule.Compare(value, rule.Check.Critical)
 			if err != nil {
 				checker.logger.Error(err)
 				continue
 			}
 			if result {
-				results = append(results, CheckResult{Code: 2, Rule: &rule, Record: &record})
+				results = append(results, shared.CheckResult{
+					Code:        2,
+					Hostname:    record.Host,
+					Type:        "service",
+					ServiceName: rule.Name,
+					Output:      value,
+				})
 				continue
 			}
 
 			// WARNING CHECK
-			result, err = rule.Compare(buf.String(), rule.Check.Warning)
+			result, err = rule.Compare(value, rule.Check.Warning)
 			if err != nil {
 				checker.logger.Error(err)
 				continue
 			}
 			if result {
-				results = append(results, CheckResult{Code: 1, Rule: &rule, Record: &record})
+				results = append(results, shared.CheckResult{
+					Code:        1,
+					Hostname:    record.Host,
+					Type:        "service",
+					ServiceName: rule.Name,
+					Output:      value,
+				})
 				continue
 			}
 
 			// SUCCESS
-			results = append(results, CheckResult{Code: 0, Rule: &rule, Record: &record})
+			results = append(results, shared.CheckResult{
+				Code:        0,
+				Hostname:    record.Host,
+				Type:        "service",
+				ServiceName: rule.Name,
+				Output:      value,
+			})
 		}
 	}
 	return results, nil
@@ -129,7 +104,7 @@ func (checker *Checker) spawnChecker() {
 				continue
 			}
 			if len(checkResults) > 0 {
-				fmt.Printf("Check results: %+v\n", checkResults)
+				checker.writer.Emit(checkResults)
 			}
 		}
 		checker.logger.Info("Checker ended")
@@ -162,14 +137,14 @@ func (checker *Checker) Start() {
 	checker.spawnChecker()
 }
 
-func NewChecker(logger *logrus.Logger, checks map[string]config.Check) (*Checker, error) {
-	_checks := map[string][]CheckerRule{}
+func NewChecker(logger *logrus.Logger, checks map[string]config.Check, writer shared.Writer) (*Checker, error) {
+	_checks := map[string][]shared.CheckerRule{}
 
 	for k, v := range checks {
 		if _, ok := _checks[v.Plugin]; !ok {
-			_checks[v.Plugin] = []CheckerRule{}
+			_checks[v.Plugin] = []shared.CheckerRule{}
 		}
-		_checks[v.Plugin] = append(_checks[v.Plugin], CheckerRule{Name: k, Check: v})
+		_checks[v.Plugin] = append(_checks[v.Plugin], shared.CheckerRule{Name: k, Check: v})
 	}
 
 	checker := &Checker{
@@ -178,6 +153,7 @@ func NewChecker(logger *logrus.Logger, checks map[string]config.Check) (*Checker
 		emitterChan:    make(chan CollectdRecord),
 		isShuttingDown: 0,
 		checks:         _checks,
+		writer:         writer,
 	}
 	return checker, nil
 }

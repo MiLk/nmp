@@ -1,10 +1,11 @@
 package fluentd
 
 import (
-	"github.com/Sirupsen/logrus"
 	"net"
 	"sync"
 	"sync/atomic"
+
+	"github.com/Sirupsen/logrus"
 )
 
 type HeartbeatInput struct {

@@ -1,11 +1,13 @@
 package collectd
 
 import (
-	"github.com/Sirupsen/logrus"
-	"github.com/milk/nmp/shared"
 	"reflect"
 	"sync"
 	"sync/atomic"
+
+	"github.com/Sirupsen/logrus"
+
+	"github.com/milk/nmp/shared"
 )
 
 type Transformer struct {

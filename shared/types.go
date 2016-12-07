@@ -13,3 +13,15 @@ type RecordSet struct {
 type InputListener interface {
 	Emit(recordSets []RecordSet) error
 }
+
+type CheckResult struct {
+	Hostname    string
+	Type        string
+	ServiceName string
+	Code        uint8
+	Output      string
+}
+
+type Writer interface {
+	Emit(checkResults []CheckResult) error
+}

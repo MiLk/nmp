@@ -2,10 +2,11 @@ package config
 
 import (
 	"fmt"
-	"github.com/hashicorp/hcl"
-	"github.com/hashicorp/hil"
 	"io/ioutil"
 	"text/template"
+
+	"github.com/hashicorp/hcl"
+	"github.com/hashicorp/hil"
 )
 
 type Comparator string
