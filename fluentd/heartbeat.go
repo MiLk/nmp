@@ -1,10 +1,10 @@
 package fluentd
 
 import (
-	"sync/atomic"
 	"github.com/Sirupsen/logrus"
 	"net"
 	"sync"
+	"sync/atomic"
 )
 
 type HeartbeatInput struct {
@@ -24,7 +24,7 @@ func (input *HeartbeatInput) spawnDaemon() {
 		input.logger.Info("Fluentd Heartbeat Daemon started")
 
 		buf := make([]byte, 1024)
-		for ;input.isShuttingDown == 0; {
+		for input.isShuttingDown == 0 {
 			_, addr, err := input.listener.ReadFromUDP(buf)
 			if err != nil {
 				input.logger.Error(err.Error())
@@ -68,8 +68,8 @@ func NewForwardHeartbeatInput(logger *logrus.Logger, bind string) (*HeartbeatInp
 	}
 
 	return &HeartbeatInput{
-		logger:         logger,
-		listener:       listener,
-		wg:             sync.WaitGroup{},
+		logger:   logger,
+		listener: listener,
+		wg:       sync.WaitGroup{},
 	}, nil
 }

@@ -6,13 +6,13 @@ import (
 	"errors"
 	"fmt"
 	"github.com/Sirupsen/logrus"
+	"github.com/milk/nmp/shared"
 	"github.com/ugorji/go/codec"
 	"io"
 	"net"
 	"reflect"
 	"sync"
 	"sync/atomic"
-	"github.com/milk/nmp/shared"
 )
 
 type forwardClient struct {
