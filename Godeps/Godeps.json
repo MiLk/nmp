@@ -2,5 +2,82 @@
 	"ImportPath": "github.com/milk/nmp",
 	"GoVersion": "go1.7",
 	"GodepVersion": "v75",
-	"Deps": []
+	"Packages": [
+		"./..."
+	],
+	"Deps": [
+		{
+			"ImportPath": "github.com/Sirupsen/logrus",
+			"Comment": "v0.11.0-25-g881bee4",
+			"Rev": "881bee4e20a5d11a6a88a5667c6f292072ac1963"
+		},
+		{
+			"ImportPath": "github.com/hashicorp/hcl",
+			"Rev": "37ab263305aaeb501a60eb16863e808d426e37f2"
+		},
+		{
+			"ImportPath": "github.com/hashicorp/hcl/hcl/ast",
+			"Rev": "37ab263305aaeb501a60eb16863e808d426e37f2"
+		},
+		{
+			"ImportPath": "github.com/hashicorp/hcl/hcl/parser",
+			"Rev": "37ab263305aaeb501a60eb16863e808d426e37f2"
+		},
+		{
+			"ImportPath": "github.com/hashicorp/hcl/hcl/scanner",
+			"Rev": "37ab263305aaeb501a60eb16863e808d426e37f2"
+		},
+		{
+			"ImportPath": "github.com/hashicorp/hcl/hcl/strconv",
+			"Rev": "37ab263305aaeb501a60eb16863e808d426e37f2"
+		},
+		{
+			"ImportPath": "github.com/hashicorp/hcl/hcl/token",
+			"Rev": "37ab263305aaeb501a60eb16863e808d426e37f2"
+		},
+		{
+			"ImportPath": "github.com/hashicorp/hcl/json/parser",
+			"Rev": "37ab263305aaeb501a60eb16863e808d426e37f2"
+		},
+		{
+			"ImportPath": "github.com/hashicorp/hcl/json/scanner",
+			"Rev": "37ab263305aaeb501a60eb16863e808d426e37f2"
+		},
+		{
+			"ImportPath": "github.com/hashicorp/hcl/json/token",
+			"Rev": "37ab263305aaeb501a60eb16863e808d426e37f2"
+		},
+		{
+			"ImportPath": "github.com/hashicorp/hil",
+			"Rev": "bf046eec69cc383b7f32c47990336409601c8116"
+		},
+		{
+			"ImportPath": "github.com/hashicorp/hil/ast",
+			"Rev": "bf046eec69cc383b7f32c47990336409601c8116"
+		},
+		{
+			"ImportPath": "github.com/hashicorp/hil/parser",
+			"Rev": "bf046eec69cc383b7f32c47990336409601c8116"
+		},
+		{
+			"ImportPath": "github.com/hashicorp/hil/scanner",
+			"Rev": "bf046eec69cc383b7f32c47990336409601c8116"
+		},
+		{
+			"ImportPath": "github.com/mitchellh/mapstructure",
+			"Rev": "5a0325d7fafaac12dda6e7fb8bd222ec1b69875e"
+		},
+		{
+			"ImportPath": "github.com/mitchellh/reflectwalk",
+			"Rev": "9ad27c461a633e32a235a061d523aefe8f18571d"
+		},
+		{
+			"ImportPath": "github.com/ugorji/go/codec",
+			"Rev": "9c7f9b7a2bc3a520f7c7b30b34b7f85f47fe27b6"
+		},
+		{
+			"ImportPath": "golang.org/x/sys/unix",
+			"Rev": "478fcf54317e52ab69f40bb4c7a1520288d7f7ea"
+		}
+	]
 }
