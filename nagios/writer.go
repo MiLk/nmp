@@ -19,7 +19,7 @@ type Writer struct {
 }
 
 func (writer *Writer) writeToFile(checkResult string) error {
-	tmpfile, err := ioutil.TempFile(writer.checkResultsDir, "c")
+	tmpfile, err := TempFile(writer.checkResultsDir, "c", 6)
 	if err != nil {
 		return err
 	}
