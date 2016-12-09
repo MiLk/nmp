@@ -48,7 +48,7 @@ func (transformer *Transformer) TransformRecord(tag string, record shared.TinyRe
 		case "interval":
 			transformed.Interval = uint8(v.(float64))
 		default:
-			transformer.logger.Warn("Unhandled field %s: %+v\n", k, v)
+			transformer.logger.Warnf("Unhandled field %s: %+v\n", k, v)
 		}
 	}
 	return nil
