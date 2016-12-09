@@ -8,3 +8,45 @@ It is designed to receive and process collectd metrics and send passive check re
 ```bash
 go get -u github.com/milk/nmp/cmd/nmp
 ```
+
+## Build for a specific OS and architecture
+
+```bash
+env GOOS=linux GOARCH=amd64 go build -v github.com/milk/nmp/cmd/nmp
+```
+
+## Configuration
+
+```hcl
+check_results_dir = "/usr/local/nagios/var/spool/checkresults"
+
+check "memory" {
+    plugin = "memory"
+    comparator = "<="
+    type_instance = "free"
+    warning = "${1024 * 1024 * 1024}"
+    critical = "${512 * 1024 * 1024}"
+}
+
+check "load_shortterm" {
+    plugin = "load"
+    value = "{{ (index .Values 0) }}"
+    warning = "0.7"
+    critical = "0.8"
+}
+
+check "load_midterm" {
+    plugin = "load"
+    value = "{{ (index .Values 1) }}"
+    warning = "0.7"
+    critical = "0.8"
+}
+
+check "load_longterm" {
+    plugin = "load"
+    value = "{{ (index .Values 2) }}"
+    warning = "0.7"
+    critical = "0.8"
+}
+
+```
