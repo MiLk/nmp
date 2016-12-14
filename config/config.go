@@ -37,8 +37,8 @@ type Config struct {
 	Checks          map[string]Check `hcl:"check"`
 }
 
-func Read() (*Config, error) {
-	out, err := loadFileHcl("config.hcl")
+func Read(configFile string) (*Config, error) {
+	out, err := loadFileHcl(configFile)
 	if err != nil {
 		return nil, err
 	}

@@ -1,7 +1,13 @@
 package main
 
 import (
+	"fmt"
+	"net/http"
+	_ "net/http/pprof"
+	"os"
+
 	"github.com/Sirupsen/logrus"
+	"github.com/spf13/cobra"
 
 	"github.com/milk/nmp"
 	"github.com/milk/nmp/collectd"
@@ -10,10 +16,49 @@ import (
 	"github.com/milk/nmp/nagios"
 )
 
+func startProfiler() {
+	http.ListenAndServe(":6060", http.DefaultServeMux)
+}
+
+var RootCmd = &cobra.Command{
+	Use:   "nmp",
+	Short: "Nagios Metrics Processor",
+	Long:  `NMP (Nagios Metrics Processor) is a simple metrics collector for use with Nagios.`,
+	Run:   nmpCommand,
+}
+
+func init() {
+	RootCmd.PersistentFlags().StringP("config", "c", "config.hcl", "Path to the configuration file to use")
+	RootCmd.PersistentFlags().Bool("pprof", false, "Enable profiling with pkg/net/pprof")
+}
+
 func main() {
+	if err := RootCmd.Execute(); err != nil {
+		fmt.Println(err)
+		os.Exit(-1)
+	}
+}
+
+func nmpCommand(cmd *cobra.Command, args []string) {
 	log := logrus.New()
 
-	_config, err := config.Read()
+	pprof, err := cmd.Flags().GetBool("pprof")
+	if err != nil {
+		log.Fatal(err.Error())
+		return
+	}
+
+	configFile, err := cmd.Flags().GetString("config")
+	if err != nil {
+		log.Fatal(err.Error())
+		return
+	}
+
+	if pprof {
+		go startProfiler()
+	}
+
+	_config, err := config.Read(configFile)
 	if err != nil {
 		log.Fatal(err.Error())
 		return
