@@ -6,6 +6,7 @@ import (
 	"sync/atomic"
 
 	"github.com/Sirupsen/logrus"
+	"time"
 )
 
 type HeartbeatInput struct {
@@ -26,8 +27,12 @@ func (input *HeartbeatInput) spawnDaemon() {
 
 		buf := make([]byte, 1024)
 		for input.isShuttingDown == 0 {
+			input.listener.SetReadDeadline(time.Now().Add(10 * time.Second))
 			_, addr, err := input.listener.ReadFromUDP(buf)
 			if err != nil {
+				if err, ok := err.(net.Error); ok && err.Timeout() {
+					continue
+				}
 				input.logger.Error(err.Error())
 			}
 
