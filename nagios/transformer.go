@@ -39,6 +39,7 @@ func (transformer *Transformer) spawnTransformer() {
 		buf := new(bytes.Buffer)
 		for checks := range transformer.transformerChan {
 			for _, check := range checks {
+				buf.Reset()
 				now := time.Now()
 				err := transformer.template.Execute(buf, TemplateData{
 					CheckResult: check,
