@@ -37,7 +37,7 @@ type Check struct {
 	Critical       hil.EvaluationResult      `hcl:"-"`
 	ValueTpl       string                    `hcl:"value"`
 	Value          *template.Template        `hcl:"-"`
-	Thresholds     map[string]CheckThreshold `hcl:"hostname"`
+	Thresholds     map[string]CheckThreshold `hcl:"host"`
 }
 
 type Config struct {
