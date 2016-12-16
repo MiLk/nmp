@@ -18,18 +18,26 @@ const (
 	LesserThan           Comparator = "<"
 )
 
+type CheckThreshold struct {
+	WarningTpl  string               `hcl:"warning"`
+	CriticalTpl string               `hcl:"critical"`
+	Warning     hil.EvaluationResult `hcl:"-"`
+	Critical    hil.EvaluationResult `hcl:"-"`
+}
+
 type Check struct {
-	Plugin         string               `hcl:"plugin"`
-	PluginInstance string               `hcl:"plugin_instance"`
-	Type           string               `hcl:"type"`
-	TypeInstance   string               `hcl:"type_instance"`
-	Comparator     Comparator           `hcl:"comparator"`
-	WarningTpl     string               `hcl:"warning"`
-	CriticalTpl    string               `hcl:"critical"`
-	Warning        hil.EvaluationResult `hcl:"-"`
-	Critical       hil.EvaluationResult `hcl:"-"`
-	ValueTpl       string               `hcl:"value"`
-	Value          *template.Template   `hcl:"-"`
+	Plugin         string                    `hcl:"plugin"`
+	PluginInstance string                    `hcl:"plugin_instance"`
+	Type           string                    `hcl:"type"`
+	TypeInstance   string                    `hcl:"type_instance"`
+	Comparator     Comparator                `hcl:"comparator"`
+	WarningTpl     string                    `hcl:"warning"`
+	CriticalTpl    string                    `hcl:"critical"`
+	Warning        hil.EvaluationResult      `hcl:"-"`
+	Critical       hil.EvaluationResult      `hcl:"-"`
+	ValueTpl       string                    `hcl:"value"`
+	Value          *template.Template        `hcl:"-"`
+	Thresholds     map[string]CheckThreshold `hcl:"hostname"`
 }
 
 type Config struct {
@@ -91,6 +99,21 @@ func loadFileHcl(root string) (*Config, error) {
 		if err != nil {
 			return nil, err
 		}
+
+		for hostname, threshold := range check.Thresholds {
+			threshold.Critical, err = ParseHIL(threshold.CriticalTpl, hilConfig)
+			if err != nil {
+				return nil, err
+			}
+
+			threshold.Warning, err = ParseHIL(threshold.WarningTpl, hilConfig)
+			if err != nil {
+				return nil, err
+			}
+
+			check.Thresholds[hostname] = threshold
+		}
+
 		out.Checks[name] = check
 	}
 
