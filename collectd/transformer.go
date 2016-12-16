@@ -47,6 +47,8 @@ func (transformer *Transformer) TransformRecord(tag string, record shared.TinyRe
 			transformed.DsNames = v
 		case "interval":
 			transformed.Interval = uint8(v.(float64))
+		case "tag":
+			continue
 		default:
 			transformer.logger.Warnf("Unhandled field %s: %+v\n", k, v)
 		}
