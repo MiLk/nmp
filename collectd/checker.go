@@ -84,6 +84,7 @@ func (checker *Checker) checkRecord(record CollectdRecord) ([]shared.CheckResult
 				continue
 			}
 			if result != nil {
+				checker.logger.Infof("CRITICAL: %s - %s | %+v\n", record.Host, rule.Name, result)
 				results = append(results, *result)
 				continue
 			}
@@ -95,6 +96,7 @@ func (checker *Checker) checkRecord(record CollectdRecord) ([]shared.CheckResult
 				continue
 			}
 			if result != nil {
+				checker.logger.Infof("WARNING: %s - %s | %+v\n", record.Host, rule.Name, result)
 				results = append(results, *result)
 				continue
 			}
