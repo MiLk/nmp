@@ -23,7 +23,7 @@ type Checker struct {
 }
 
 func (checker *Checker) checkThreshold(rule shared.CheckerRule, value string, threshold hil.EvaluationResult, code uint8, hostname string) (*shared.CheckResult, error) {
-	result, err := rule.Compare(value, rule.Check.Critical)
+	result, err := rule.Compare(value, threshold)
 	if err != nil {
 		return nil, err
 	}
@@ -84,7 +84,7 @@ func (checker *Checker) checkRecord(record CollectdRecord) ([]shared.CheckResult
 				continue
 			}
 			if result != nil {
-				checker.logger.Infof("CRITICAL: %s - %s | %+v\n", record.Host, rule.Name, result)
+				checker.logger.Infof("CRITICAL: %s - %s | %+v | %s %s %s\n", record.Host, rule.Name, result, value, rule.Check.Comparator, critical)
 				results = append(results, *result)
 				continue
 			}
@@ -96,7 +96,7 @@ func (checker *Checker) checkRecord(record CollectdRecord) ([]shared.CheckResult
 				continue
 			}
 			if result != nil {
-				checker.logger.Infof("WARNING: %s - %s | %+v\n", record.Host, rule.Name, result)
+				checker.logger.Infof("WARNING: %s - %s | %+v\n", record.Host, rule.Name, result, value, rule.Check.Comparator, warning)
 				results = append(results, *result)
 				continue
 			}
