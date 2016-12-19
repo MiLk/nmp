@@ -26,6 +26,16 @@ check "memory" {
     type_instance = "free"
     warning = "${1024 * 1024 * 1024}"
     critical = "${512 * 1024 * 1024}"
+    
+    host "db.*" {
+        warning = "${0.2 * 15 * 1024 * 1024 * 1024}"
+        critical = "${0.1 * 15 * 1024 * 1024 * 1024}"
+    }
+    
+    host "(web.*|worker.*)" {
+        warning = "${0.2 * 4 * 1024 * 1024 * 1024}"
+        critical = "${0.1 * 4 * 1024 * 1024 * 1024}"
+    }
 }
 
 check "load_shortterm" {

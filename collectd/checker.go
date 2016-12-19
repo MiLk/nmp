@@ -2,11 +2,13 @@ package collectd
 
 import (
 	"bytes"
+	"regexp"
 	"sync"
 	"sync/atomic"
 
 	"github.com/Sirupsen/logrus"
 
+	"github.com/hashicorp/hil"
 	"github.com/milk/nmp/config"
 	"github.com/milk/nmp/shared"
 )
@@ -18,6 +20,23 @@ type Checker struct {
 	isShuttingDown uintptr
 	checks         map[string][]shared.CheckerRule
 	transformer    shared.Transformer
+}
+
+func (checker *Checker) checkThreshold(rule shared.CheckerRule, value string, threshold hil.EvaluationResult, code uint8, hostname string) (*shared.CheckResult, error) {
+	result, err := rule.Compare(value, threshold)
+	if err != nil {
+		return nil, err
+	}
+	if result {
+		return &shared.CheckResult{
+			Code:        code,
+			Hostname:    hostname,
+			Type:        "service",
+			ServiceName: rule.Name,
+			Output:      value,
+		}, nil
+	}
+	return nil, nil
 }
 
 func (checker *Checker) checkRecord(record CollectdRecord) ([]shared.CheckResult, error) {
@@ -42,37 +61,43 @@ func (checker *Checker) checkRecord(record CollectdRecord) ([]shared.CheckResult
 			}
 			value := buf.String()
 
+			// Load host specific thresholds
+			critical := rule.Check.Critical
+			warning := rule.Check.Warning
+			for pattern, threshold := range rule.Check.Thresholds {
+				matched, err := regexp.MatchString(pattern, record.Host)
+				if err != nil {
+					checker.logger.Error(err)
+					continue
+				}
+				if matched {
+					critical = threshold.Critical
+					warning = threshold.Warning
+					break
+				}
+			}
+
 			// CRITICAL CHECK
-			result, err := rule.Compare(value, rule.Check.Critical)
+			result, err := checker.checkThreshold(rule, value, critical, 2, record.Host)
 			if err != nil {
 				checker.logger.Error(err)
 				continue
 			}
-			if result {
-				results = append(results, shared.CheckResult{
-					Code:        2,
-					Hostname:    record.Host,
-					Type:        "service",
-					ServiceName: rule.Name,
-					Output:      value,
-				})
+			if result != nil {
+				checker.logger.Infof("CRITICAL: %s - %s | %+v | %s %s %s\n", record.Host, rule.Name, result, value, rule.Check.Comparator, critical)
+				results = append(results, *result)
 				continue
 			}
 
 			// WARNING CHECK
-			result, err = rule.Compare(value, rule.Check.Warning)
+			result, err = checker.checkThreshold(rule, value, warning, 1, record.Host)
 			if err != nil {
 				checker.logger.Error(err)
 				continue
 			}
-			if result {
-				results = append(results, shared.CheckResult{
-					Code:        1,
-					Hostname:    record.Host,
-					Type:        "service",
-					ServiceName: rule.Name,
-					Output:      value,
-				})
+			if result != nil {
+				checker.logger.Infof("WARNING: %s - %s | %+v\n", record.Host, rule.Name, result, value, rule.Check.Comparator, warning)
+				results = append(results, *result)
 				continue
 			}
 
