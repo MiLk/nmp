@@ -96,7 +96,7 @@ func (checker *Checker) checkRecord(record CollectdRecord) ([]shared.CheckResult
 				continue
 			}
 			if result != nil {
-				checker.logger.Infof("WARNING: %s - %s | %+v\n", record.Host, rule.Name, result, value, rule.Check.Comparator, warning)
+				checker.logger.Infof("WARNING: %s - %s | %+v | %s %s %s\n", record.Host, rule.Name, result, value, rule.Check.Comparator, warning)
 				results = append(results, *result)
 				continue
 			}
