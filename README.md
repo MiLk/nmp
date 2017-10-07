@@ -6,13 +6,13 @@ It is designed to receive and process collectd metrics and send passive check re
 ## Install
 
 ```bash
-go get -u github.com/milk/nmp/cmd/nmp
+go get -u github.com/MiLk/nmp/cmd/nmp
 ```
 
-## Build for a specific OS and architecture
+## Build
 
 ```bash
-env GOOS=linux GOARCH=amd64 go build -v github.com/milk/nmp/cmd/nmp
+goreleaser --snapshot
 ```
 
 ## Configuration
@@ -26,12 +26,12 @@ check "memory" {
     type_instance = "free"
     warning = "${1024 * 1024 * 1024}"
     critical = "${512 * 1024 * 1024}"
-    
+
     host "db.*" {
         warning = "${0.2 * 15 * 1024 * 1024 * 1024}"
         critical = "${0.1 * 15 * 1024 * 1024 * 1024}"
     }
-    
+
     host "(web.*|worker.*)" {
         warning = "${0.2 * 4 * 1024 * 1024 * 1024}"
         critical = "${0.1 * 4 * 1024 * 1024 * 1024}"

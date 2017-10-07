@@ -1,0 +1,14 @@
+project_name: nmp
+release:
+  github:
+    owner: MiLk
+    name: nmp
+builds:
+- goos:
+  - linux
+  - darwin
+  goarch:
+  - amd64
+  main: ./cmd/nmp
+archive:
+  files: []
