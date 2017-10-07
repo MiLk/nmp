@@ -25,19 +25,39 @@ type CheckThreshold struct {
 	Critical    hil.EvaluationResult `hcl:"-"`
 }
 
+type CheckThresholdMap map[string]CheckThreshold
+
+func (m CheckThresholdMap) Parse(hilConfig *hil.EvalConfig) (err error) {
+	for k, threshold := range m {
+		threshold.Critical, err = ParseHIL(threshold.CriticalTpl, hilConfig)
+		if err != nil {
+			return
+		}
+
+		threshold.Warning, err = ParseHIL(threshold.WarningTpl, hilConfig)
+		if err != nil {
+			return
+		}
+
+		m[k] = threshold
+	}
+	return
+}
+
 type Check struct {
-	Plugin         string                    `hcl:"plugin"`
-	PluginInstance string                    `hcl:"plugin_instance"`
-	Type           string                    `hcl:"type"`
-	TypeInstance   string                    `hcl:"type_instance"`
-	Comparator     Comparator                `hcl:"comparator"`
-	WarningTpl     string                    `hcl:"warning"`
-	CriticalTpl    string                    `hcl:"critical"`
-	Warning        hil.EvaluationResult      `hcl:"-"`
-	Critical       hil.EvaluationResult      `hcl:"-"`
-	ValueTpl       string                    `hcl:"value"`
-	Value          *template.Template        `hcl:"-"`
-	Thresholds     map[string]CheckThreshold `hcl:"host"`
+	Plugin         string               `hcl:"plugin"`
+	PluginInstance string               `hcl:"plugin_instance"`
+	Type           string               `hcl:"type"`
+	TypeInstance   string               `hcl:"type_instance"`
+	Comparator     Comparator           `hcl:"comparator"`
+	WarningTpl     string               `hcl:"warning"`
+	CriticalTpl    string               `hcl:"critical"`
+	Warning        hil.EvaluationResult `hcl:"-"`
+	Critical       hil.EvaluationResult `hcl:"-"`
+	ValueTpl       string               `hcl:"value"`
+	Value          *template.Template   `hcl:"-"`
+	HostThresholds CheckThresholdMap    `hcl:"host"`
+	MetaThresholds CheckThresholdMap    `hcl:"meta"`
 }
 
 type Config struct {
@@ -100,19 +120,8 @@ func loadFileHcl(root string) (*Config, error) {
 			return nil, err
 		}
 
-		for hostname, threshold := range check.Thresholds {
-			threshold.Critical, err = ParseHIL(threshold.CriticalTpl, hilConfig)
-			if err != nil {
-				return nil, err
-			}
-
-			threshold.Warning, err = ParseHIL(threshold.WarningTpl, hilConfig)
-			if err != nil {
-				return nil, err
-			}
-
-			check.Thresholds[hostname] = threshold
-		}
+		check.HostThresholds.Parse(hilConfig)
+		check.MetaThresholds.Parse(hilConfig)
 
 		out.Checks[name] = check
 	}

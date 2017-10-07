@@ -2,14 +2,17 @@ package collectd
 
 import (
 	"bytes"
+	"fmt"
 	"regexp"
+	"strings"
 	"sync"
 	"sync/atomic"
 
-	"github.com/hashicorp/hil"
 	"github.com/Sirupsen/logrus"
+	"github.com/hashicorp/hil"
 
 	"github.com/MiLk/nmp/config"
+	"github.com/MiLk/nmp/consul"
 	"github.com/MiLk/nmp/shared"
 )
 
@@ -61,16 +64,44 @@ func (checker *Checker) checkRecord(record CollectdRecord) ([]shared.CheckResult
 			}
 			value := buf.String()
 
-			// Load host specific thresholds
 			critical := rule.Check.Critical
 			warning := rule.Check.Warning
-			for pattern, threshold := range rule.Check.Thresholds {
+
+			matchName := "default"
+
+			// Load meta specific thresholds
+			for pattern, threshold := range rule.Check.MetaThresholds {
+				node, err := consul.GetNode(record.HostShort)
+				if err != nil {
+					checker.logger.Error(err)
+					continue
+				}
+				if node == nil {
+					continue
+				}
+
+				splitted := strings.SplitN(pattern, ":", 2)
+				v, ok := node.Meta[splitted[0]]
+				if !ok || v != splitted[1] {
+					continue
+				}
+
+				matchName = fmt.Sprintf("meta:%s", pattern)
+
+				critical = threshold.Critical
+				warning = threshold.Warning
+				break
+			}
+
+			// Load host specific thresholds
+			for pattern, threshold := range rule.Check.HostThresholds {
 				matched, err := regexp.MatchString(pattern, record.Host)
 				if err != nil {
 					checker.logger.Error(err)
 					continue
 				}
 				if matched {
+					matchName = fmt.Sprintf("host:%s", pattern)
 					critical = threshold.Critical
 					warning = threshold.Warning
 					break
@@ -84,7 +115,7 @@ func (checker *Checker) checkRecord(record CollectdRecord) ([]shared.CheckResult
 				continue
 			}
 			if result != nil {
-				checker.logger.Infof("CRITICAL: %s - %s | %+v | %s %s %s\n", record.Host, rule.Name, result, value, rule.Check.Comparator, critical)
+				checker.logger.Infof("CRITICAL: %s - %s - %s | %+v | %s %s %s\n", record.Host, rule.Name, matchName, result, value, rule.Check.Comparator, critical)
 				results = append(results, *result)
 				continue
 			}
@@ -96,7 +127,7 @@ func (checker *Checker) checkRecord(record CollectdRecord) ([]shared.CheckResult
 				continue
 			}
 			if result != nil {
-				checker.logger.Infof("WARNING: %s - %s | %+v | %s %s %s\n", record.Host, rule.Name, result, value, rule.Check.Comparator, warning)
+				checker.logger.Infof("WARNING: %s - %s - %s | %+v | %s %s %s\n", record.Host, rule.Name, matchName, result, value, rule.Check.Comparator, warning)
 				results = append(results, *result)
 				continue
 			}

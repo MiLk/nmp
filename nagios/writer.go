@@ -3,9 +3,9 @@ package nagios
 import (
 	"fmt"
 	"io/ioutil"
+	"os"
 	"sync"
 	"sync/atomic"
-	"os"
 
 	"github.com/Sirupsen/logrus"
 )

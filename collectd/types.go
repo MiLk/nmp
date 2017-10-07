@@ -7,6 +7,7 @@ type CollectdRecord struct {
 	Timestamp      uint64
 	Raw            map[string]interface{}
 	Host           string
+	HostShort      string
 	Plugin         string
 	PluginInstance string
 	Type           string
