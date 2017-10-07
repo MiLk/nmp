@@ -6,11 +6,11 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"github.com/hashicorp/hil"
 	"github.com/Sirupsen/logrus"
 
-	"github.com/hashicorp/hil"
-	"github.com/milk/nmp/config"
-	"github.com/milk/nmp/shared"
+	"github.com/MiLk/nmp/config"
+	"github.com/MiLk/nmp/shared"
 )
 
 type Checker struct {

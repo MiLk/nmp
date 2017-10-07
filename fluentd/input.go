@@ -14,7 +14,7 @@ import (
 	"github.com/Sirupsen/logrus"
 	"github.com/ugorji/go/codec"
 
-	"github.com/milk/nmp/shared"
+	"github.com/MiLk/nmp/shared"
 )
 
 type forwardClient struct {

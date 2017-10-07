@@ -4,9 +4,9 @@ import (
 	"net"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"github.com/Sirupsen/logrus"
-	"time"
 )
 
 type HeartbeatInput struct {

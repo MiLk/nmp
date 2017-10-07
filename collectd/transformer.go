@@ -7,7 +7,7 @@ import (
 
 	"github.com/Sirupsen/logrus"
 
-	"github.com/milk/nmp/shared"
+	"github.com/MiLk/nmp/shared"
 )
 
 type Transformer struct {

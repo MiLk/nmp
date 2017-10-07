@@ -5,9 +5,9 @@ import (
 	"io/ioutil"
 	"sync"
 	"sync/atomic"
+	"os"
 
 	"github.com/Sirupsen/logrus"
-	"os"
 )
 
 type Writer struct {

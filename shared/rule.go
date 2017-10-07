@@ -6,7 +6,7 @@ import (
 
 	"github.com/hashicorp/hil"
 
-	"github.com/milk/nmp/config"
+	"github.com/MiLk/nmp/config"
 )
 
 type CheckerRule struct {

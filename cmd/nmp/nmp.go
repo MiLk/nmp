@@ -9,11 +9,11 @@ import (
 	"github.com/Sirupsen/logrus"
 	"github.com/spf13/cobra"
 
-	"github.com/milk/nmp"
-	"github.com/milk/nmp/collectd"
-	"github.com/milk/nmp/config"
-	"github.com/milk/nmp/fluentd"
-	"github.com/milk/nmp/nagios"
+	"github.com/MiLk/nmp"
+	"github.com/MiLk/nmp/collectd"
+	"github.com/MiLk/nmp/config"
+	"github.com/MiLk/nmp/fluentd"
+	"github.com/MiLk/nmp/nagios"
 )
 
 func startProfiler() {
