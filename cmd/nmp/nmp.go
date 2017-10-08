@@ -12,6 +12,7 @@ import (
 	"github.com/MiLk/nmp"
 	"github.com/MiLk/nmp/collectd"
 	"github.com/MiLk/nmp/config"
+	"github.com/MiLk/nmp/consul"
 	"github.com/MiLk/nmp/fluentd"
 	"github.com/MiLk/nmp/nagios"
 )
@@ -66,6 +67,9 @@ func nmpCommand(cmd *cobra.Command, args []string) {
 
 	workerSet := nmp.NewWorkerSet()
 
+	runner := consul.NewRunner(log)
+	workerSet.Add(runner)
+
 	writer, err := nagios.NewWriter(log, _config.CheckResultsDir)
 	if err != nil {
 		log.Fatal(err.Error())
@@ -110,6 +114,7 @@ func nmpCommand(cmd *cobra.Command, args []string) {
 
 	signalHandler := nmp.NewSignalHandler(workerSet)
 
+	runner.Start()
 	writer.Start()
 	transformer.Start()
 	checker.Start()

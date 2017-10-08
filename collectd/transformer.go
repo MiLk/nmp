@@ -2,7 +2,6 @@ package collectd
 
 import (
 	"reflect"
-	"strings"
 	"sync"
 	"sync/atomic"
 
@@ -32,11 +31,6 @@ func (transformer *Transformer) TransformRecord(tag string, record shared.TinyRe
 		switch k {
 		case "host":
 			transformed.Host = v.(string)
-			if idx := strings.IndexByte(transformed.Host, '.'); idx > -1 {
-				transformed.HostShort = transformed.Host[:idx]
-			} else {
-				transformed.HostShort = transformed.Host
-			}
 		case "plugin":
 			transformed.Plugin = v.(string)
 		case "plugin_instance":

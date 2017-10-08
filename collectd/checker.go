@@ -71,11 +71,7 @@ func (checker *Checker) checkRecord(record CollectdRecord) ([]shared.CheckResult
 
 			// Load meta specific thresholds
 			for pattern, threshold := range rule.Check.MetaThresholds {
-				node, err := consul.GetNode(record.HostShort)
-				if err != nil {
-					checker.logger.Error(err)
-					continue
-				}
+				node := consul.GetNode(record.Host)
 				if node == nil {
 					continue
 				}
