@@ -22,7 +22,7 @@ func (r *Runner) spawnRunner() {
 			select {
 			case <-r.stopCh:
 				break
-			case <-time.After(30 * time.Second):
+			case <-time.After(1 * time.Minute):
 				if err := loadNodesFromAllDatacenters(); err != nil {
 					r.logger.Error(err)
 				}

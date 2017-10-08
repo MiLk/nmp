@@ -40,7 +40,7 @@ func loadNodesFromAllDatacenters() error {
 				continue
 			}
 			if name, ok := n.Meta["name"]; ok {
-				nodeCache.Set(n.Node, name, cache.DefaultExpiration)
+				nodeCache.Set(name, n, cache.DefaultExpiration)
 			}
 		}
 	}
