@@ -3,7 +3,6 @@ package collectd
 import (
 	"bytes"
 	"fmt"
-	"regexp"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -91,17 +90,19 @@ func (checker *Checker) checkRecord(record CollectdRecord) ([]shared.CheckResult
 
 			// Load host specific thresholds
 			for pattern, threshold := range rule.Check.HostThresholds {
-				matched, err := regexp.MatchString(pattern, record.Host)
-				if err != nil {
-					checker.logger.Error(err)
+				if threshold.Regexp == nil {
 					continue
 				}
-				if matched {
-					matchName = fmt.Sprintf("host:%s", pattern)
-					critical = threshold.Critical
-					warning = threshold.Warning
-					break
+
+				if !threshold.Regexp.MatchString(record.Host) {
+					continue
 				}
+
+				matchName = fmt.Sprintf("host:%s", pattern)
+
+				critical = threshold.Critical
+				warning = threshold.Warning
+				break
 			}
 
 			// CRITICAL CHECK

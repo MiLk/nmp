@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"io/ioutil"
+	"regexp"
 	"text/template"
 
 	"github.com/hashicorp/hcl"
@@ -23,6 +24,7 @@ type CheckThreshold struct {
 	CriticalTpl string               `hcl:"critical"`
 	Warning     hil.EvaluationResult `hcl:"-"`
 	Critical    hil.EvaluationResult `hcl:"-"`
+	Regexp      *regexp.Regexp       `hcl:"-"`
 }
 
 type CheckThresholdMap map[string]CheckThreshold
@@ -42,6 +44,18 @@ func (m CheckThresholdMap) Parse(hilConfig *hil.EvalConfig) (err error) {
 		m[k] = threshold
 	}
 	return
+}
+
+func (m CheckThresholdMap) CompileRegexp() error {
+	for pattern, threshold := range m {
+		r, err := regexp.Compile(pattern)
+		if err != nil {
+			return err
+		}
+		threshold.Regexp = r
+		m[pattern] = threshold
+	}
+	return nil
 }
 
 type Check struct {
@@ -121,6 +135,9 @@ func loadFileHcl(root string) (*Config, error) {
 		}
 
 		check.HostThresholds.Parse(hilConfig)
+		if err := check.HostThresholds.CompileRegexp(); err != nil {
+			return nil, err
+		}
 		check.MetaThresholds.Parse(hilConfig)
 
 		out.Checks[name] = check
