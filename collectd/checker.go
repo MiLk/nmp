@@ -89,8 +89,13 @@ func (checker *Checker) checkRecord(record CollectdRecord) ([]shared.CheckResult
 			}
 
 			// Load host specific thresholds
+			priority := 0
 			for pattern, threshold := range rule.Check.HostThresholds {
 				if threshold.Regexp == nil {
+					continue
+				}
+
+				if threshold.Priority < priority {
 					continue
 				}
 
@@ -100,9 +105,9 @@ func (checker *Checker) checkRecord(record CollectdRecord) ([]shared.CheckResult
 
 				matchName = fmt.Sprintf("host:%s", pattern)
 
+				priority = threshold.Priority
 				critical = threshold.Critical
 				warning = threshold.Warning
-				break
 			}
 
 			// CRITICAL CHECK

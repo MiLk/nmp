@@ -24,6 +24,7 @@ const (
 type CheckThreshold struct {
 	WarningTpl  string               `hcl:"warning"`
 	CriticalTpl string               `hcl:"critical"`
+	Priority    int                  `hcl:"priority"`
 	Warning     hil.EvaluationResult `hcl:"-"`
 	Critical    hil.EvaluationResult `hcl:"-"`
 	Regexp      *regexp.Regexp       `hcl:"-"`
