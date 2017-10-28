@@ -35,7 +35,7 @@ func (checker *Checker) checkThreshold(rule shared.CheckerRule, value string, th
 			Hostname:    hostname,
 			Type:        "service",
 			ServiceName: rule.Name,
-			Output:      value,
+			Output:      rule.Check.FormatOutput(value),
 		}, nil
 	}
 	return nil, nil
@@ -135,7 +135,7 @@ func (checker *Checker) checkRecord(record CollectdRecord) ([]shared.CheckResult
 				Hostname:    record.Host,
 				Type:        "service",
 				ServiceName: rule.Name,
-				Output:      value,
+				Output:      rule.Check.FormatOutput(value),
 			})
 		}
 	}

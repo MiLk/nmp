@@ -4,8 +4,10 @@ import (
 	"fmt"
 	"io/ioutil"
 	"regexp"
+	"strconv"
 	"text/template"
 
+	"github.com/dustin/go-humanize"
 	"github.com/hashicorp/hcl"
 	"github.com/hashicorp/hil"
 )
@@ -72,6 +74,26 @@ type Check struct {
 	Value          *template.Template   `hcl:"-"`
 	HostThresholds CheckThresholdMap    `hcl:"host"`
 	MetaThresholds CheckThresholdMap    `hcl:"meta"`
+	Humanize       string               `hcl:"humanize"`
+}
+
+func (c *Check) FormatOutput(value string) string {
+	if c.Humanize == "" {
+		return value
+	}
+
+	valueF, err := strconv.ParseFloat(value, 64)
+	if err != nil {
+		return value
+	}
+
+	switch c.Humanize {
+	case "bytes":
+		return humanize.Bytes(uint64(valueF))
+	case "ftoa":
+		return humanize.Ftoa(valueF)
+	}
+	return value
 }
 
 type Config struct {
